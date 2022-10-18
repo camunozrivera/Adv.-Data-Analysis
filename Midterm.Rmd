@@ -1,0 +1,72 @@
+---
+title: "Midterm scratch code "
+author: "Alejandra Munoz-Rivera"
+date: "10/18/22"
+output: html_document
+---
+
+```{r}
+# install.packages("haven") 
+# install.packages("readr") 
+# install.packages("dplyr")
+# install.packages("openxlsx")
+
+# for SPSS (read_sav()), stata (read_dta()), SAS(read_sas()) and xpt (read_xpt()) files
+library(haven) 
+
+# for reading csv file (read_csv())
+library(readr) 
+
+# for data management
+library(dplyr) 
+
+#for exporting excel files
+library(openxlsx) 
+
+#we can also use the pacman package that automatically checks for packages, installs them if not found, and opens the associated library onces installed
+
+#install.packages("pacman")
+pacman::p_load(haven, readr, dplyr, openxlsx)
+```
+
+
+```{r}
+#read in data 
+data <-read_csv(
+   "https://raw.githubusercontent.com/kijohnson/Data/main/titanic.csv")
+```
+
+```{r}
+#get median age by p class 
+median(data[which(data$Pclass==1),]$Age, na.rm=TRUE)
+median(data[which(data$Pclass==2),]$Age, na.rm=TRUE)
+median(data[which(data$Pclass==3),]$Age, na.rm=TRUE)
+
+```
+
+```{r}
+pacman::p_load(foreign, haven, ggplot2)
+library("tidyverse")
+
+#plot 
+ggplot(data = data, aes(x = Pclass, y = Age, group = Pclass)) +
+  geom_boxplot() +
+  labs(x = "Passenger Class", y = "Age",  title = "Boxplot")
+
+```
+```{r}
+#recode sex 
+class(data$Sex)
+newlevel <- c("male", "female")
+data$Sex <-factor(data$Sex, levels = newlevel)
+
+```
+```{r}
+table(data$Sex)
+
+male <-filter (data, Sex=='male')
+female<-filter(data, Sex=='female')
+nrow(female)/nrow(data) *100
+nrow(male)/nrow(data) *100
+```
+
