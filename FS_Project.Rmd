@@ -163,38 +163,13 @@ tidy(model2, conf.int=TRUE, exponentiate = TRUE, p.values=TRUE)
 ```
 
 The odds of being FS are 1.10 (95% CI 0.97-1.23) times the odds of being non-FS for respondents who are not U.S. citizens. 
-#Income
-The odds of being FS are 0.79 (95% CI 0.71-0.88) times the odds of being non-FS for respondents who make between $20,000-$39,999. 
-
-The odds of being FS are 0.48 (95% CI 0.43-0.54) times the odds of being non-FS for respondents who make between $40,000-$59,999. 
-
-The odds of being FS are 0.25 (95% CI 0.22-0.28) times the odds of being non-FS for respondents who make between $60,000-$74,999.
-
-The odds of being FS are 0.14 (95% CI 0.12-0.16) times the odds of being non-FS for respondents who make between $75,000-$99,999.
-
-The odds of being FS are 0.07 (95% CI 0.06-0.09) times the odds of being non-FS for respondents who make between $100,000-$149,999.
-
-The odds of being FS are 0.02 (95% CI 0.02-0.03) times the odds of being non-FS for respondents who make more than $150,000.
-
-#Race
-The odds of being FS are 1.51 (95% CI 1.38-1.66) times the odds of being non-FS for respondents who are Black. 
-
-The odds of being FS are 1.39 (95% CI 1.11-1.72) times the odds of being non-FS for respondents who are AI/AN. 
-
-The odds of being FS are 1.17 (95% CI 1.00-1.37) times the odds of being non-FS for respondents who are Asian. 
-
-The odds of being FS are 1.09 (95% CI 0.74-1.58) times the odds of being non-FS for respondents who are Hawaiian/Pacific Island.
-
-The odds of being FS are 1.39 (95% CI 0.84-2.19) times the odds of being non-FS for respondents who are Hispanic only.
-
-The odds of being FS are 3.78 (95% CI 2.39-5.81) times the odds of being non-FS for respondents who are 3 or more races.
-
 ## Don't have to to test for linearity since non of the variables are continuous.
 
 ## Testing the parallel regression/proportional odds assumption using Brant Test for adult food securiyt 
 ```{r}
-brant(model2) #Assumption holds 
+brant(model2) 
 ```
+Parallel Regression Assumption holds. 
 
 #Repeat model for kids food security 
 ```{r}
@@ -203,11 +178,12 @@ summary(model2)
 
 tidy(model3, conf.int=TRUE, exponentiate = TRUE, p.values=TRUE)
 ```
-
-
+The odds of being FS are 1.11 (95% CI 0.94-1.30) times the odds of being non-FS for respondents who are not U.S. citizens. 
 ## Testing the parallel regression/proportional odds assumption using Brant Test for adult food security
 ```{r}
 brant(model3) #Assumption holds 
 ```
+Parallel Regression Assumption holds. 
+
 
 
