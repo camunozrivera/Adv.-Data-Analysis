@@ -1,0 +1,213 @@
+---
+title: "Indicators for Pandemic Food Security"
+author: "Alejandra Muñoz-Rivera"
+date: ""
+output:
+  html_document: default
+---
+
+## Objectives 
+1.	Determine whether adult food security status associated with citizenship status 
+2.	Determine whether child food security status associated with citizenship status 
+
+## Load packages and open libraries 
+```{r, echo=TRUE, message = F}
+pacman::p_load(odds.n.ends, blorr, lmtest, car,  broom, tidyverse, jtools, dplyr) 
+pacman::p_load(readr, nnet, MASS, funModeling, brant)
+
+# tidyverse:data management and visualization
+# odds.n.ends: computing sensitivity and specificity, plotting predictive probabilities and ROC curves for logistic regression
+# blorr: model fits of logistic regression
+# lmtest: likelihood ratio test
+# car: compare coefficients
+# broom: get cooks d
+
+# readr: for read txt file
+# tidyverse: for various packages
+# nnet: Multinomial logistic regresison
+# MASS: Ordinal logistic regression
+# funModeling: for describe function
+# brant: for testing parallel regression assumption
+```
+
+## Import csv from github
+```{r, echo=TRUE}
+FS <- read_csv("/Users/alemunoz/Desktop/BrownSchool/Fall22/ADA/FS_data.csv")
+```
+
+
+
+```{r, echo=TRUE}
+#select final interview outcome (HUFINAL), family income (HEFAMINC), age (PRTAGE), race/ethnicity (PTDTRACE), employment status (PEMLR), household size (HRNUMHOU), adult food security status (HRFS12M1), children's food security status (HRFS12MC) and citizenship (PRCITSHP) status. We're throwing in state (GESTFIPS) for fun. 
+
+#Need to figure out how to drop -1 in age & HRNUMHOU (continuous variables). 
+fs2 <- FS %>%
+  select(PTDTRACE,HEFAMINC, PRCITSHP,HRFS12M1, HRFS12MC) %>%
+    mutate(Race = recode_factor(.x = PTDTRACE, 
+                                  `-1` = NA_character_,
+                                  `1` = "White",
+                                  `2` = "Black",
+                                  `3` = "AI/AN",
+                                  `4` = "Asian",
+                                  `5` = "Hawaiian/Pacific Island", 
+                                  `6` = "Black",
+                                  `7` = "Asian",
+                                  `8` = "Hispanic only",
+                                  `9` = "Black",
+                                  `10` = "Black",
+                                  `11` = "Black",
+                                  `12` = "Black",
+                                  `13` = "AI/AN",
+                                  `14` = "AI/AN",
+                                  `15` = "Asian",
+                                  `16` = "3 or more races",
+                                  `17` = "3 or more races",
+                                  `18` = "3 or more races",
+                                  `19` = "3 or more races",
+                                  `20` = "3 or more races",
+                                  `21` = "3 or more races",
+                                  `22` = "3 or more races",
+                                  `23` = "3 or more races",
+                                  `24` = "3 or more races",
+                                  `25` = "3 or more races",
+                                  `26` = "3 or more races"))%>%
+    mutate(Inc = recode_factor(.x = HEFAMINC, 
+                                    `-1` = NA_character_,
+                                    `1` = "<$20,000",
+                                    `2` = "<$20,000",
+                                    `3` = "<$20,000",
+                                    `4` = "<$20,000",
+                                    `5` = "<$20,000",
+                                    `6` = "<$20,000",
+                                    `7` = "$20,000-$39,999",
+                                    `8` = "$20,000-$39,999",
+                                    `9` = "$20,000-$39,999",
+                                    `10` = "$20,000-$39,999",
+                                    `11` = "$40,000-$59,999",
+                                    `12` = "$40,000-$59,999",
+                                    `13` = "$60,000-$74,999",
+                                    `14` = "$75,000-$99,999",
+                                    `15` = "$100,000-$149,999",
+                                    `16` = ">$150,000"))%>%
+    mutate(Cit5= recode_factor(.x = PRCITSHP, 
+                                    `-1` = NA_character_,
+                                    `1` = "Native, born in U.S.",
+                                    `2` = "Native, born in U.S. Island Areas",
+                                    `3` = "Native, born abroad of Amer. parent(s)", 
+                                    `4` = "Foregin born, naturalized U.S. citzen", 
+                                    `5` = "Foregin born, not a U.S. citizen"))%>%
+    mutate(Cit3 = recode_factor(.x = PRCITSHP, 
+                                    `-1` = NA_character_,
+                                    `1` = "Native born",
+                                    `2` = "Native born",
+                                    `3` = "Native born", 
+                                    `4` = "Foregin born, naturalized U.S. citzen", 
+                                    `5` = "Foregin born, not a U.S. citizen"))%>%   
+    mutate(Cit2 = recode_factor(.x = PRCITSHP, 
+                                    `-1` = NA_character_,
+                                    `1` = "U.S. Citizen",
+                                    `2` = "U.S. Citizen",
+                                    `3` = "U.S. Citizen", 
+                                    `4` = "U.S. Citizen", 
+                                    `5` = "Not a U.S. citizen"))%>%   
+    mutate(FoodSec = recode_factor(.x = HRFS12M1, 
+                                   `-1` = NA_character_,
+                                    `1` = "Food Secure High or Marginal Food Security",
+                                    `2` = "Low Food Security",
+                                    `3` = "Very Low Food Security",
+                                    `-9` = NA_character_))%>%
+    mutate(KidFood = recode_factor(.x = HRFS12MC, 
+                                   `-1` = NA_character_,
+                                    `1` = "Food Secure or Marginal Food Security",
+                                    `2` = "Low Food Security",
+                                    `3` = "Very Low Food Security",
+                                    `-9` = NA_character_)) %>%
+  drop_na()
+
+```
+
+
+```{r}
+#  mutate(HUFINAL = case_when(HUFINAL > 1  ~ 0,
+#                                HUFINAL == 1 ~ 1),
+#        HUFINAL = factor(HUFINAL, 0:1, c(NA_character_, "Complete"))) %>%
+```
+
+## Check percentage of data excluded
+```{r}
+nrow(fs2)/nrow(FS) * 100
+```
+Might be a lot excluded. But not everyone did the food security questionnaire  
+
+## Let's make sure we have enough cases in each exposure/outcome category. 
+```{r}
+table(fs2$Cit3, fs2$FoodSec, fs2$KidFood)
+```
+Had to little in each category when citizenship status had 3 or 5 categories. Was recoded into binary (citizen/non-citizen). 
+
+## Run oridinal regression for adult food security 
+```{r}
+model1 <- polr(FoodSec ~ Cit2, data=fs2, Hess=TRUE) 
+
+summary(model1)
+
+tidy(model1, conf.int=TRUE, exponentiate = TRUE, p.values=TRUE)
+```
+
+## Let's adjust for income category and race/ethnicity. 
+```{r}
+model2 <- polr(FoodSec ~ Cit2 + Inc + Race, data=fs2, Hess=TRUE)
+summary(model2)
+
+tidy(model2, conf.int=TRUE, exponentiate = TRUE, p.values=TRUE)
+```
+
+The odds of being FS are 1.10 (95% CI 0.97-1.23) times the odds of being non-FS for respondents who are not U.S. citizens. 
+#Income
+The odds of being FS are 0.79 (95% CI 0.71-0.88) times the odds of being non-FS for respondents who make between $20,000-$39,999. 
+
+The odds of being FS are 0.48 (95% CI 0.43-0.54) times the odds of being non-FS for respondents who make between $40,000-$59,999. 
+
+The odds of being FS are 0.25 (95% CI 0.22-0.28) times the odds of being non-FS for respondents who make between $60,000-$74,999.
+
+The odds of being FS are 0.14 (95% CI 0.12-0.16) times the odds of being non-FS for respondents who make between $75,000-$99,999.
+
+The odds of being FS are 0.07 (95% CI 0.06-0.09) times the odds of being non-FS for respondents who make between $100,000-$149,999.
+
+The odds of being FS are 0.02 (95% CI 0.02-0.03) times the odds of being non-FS for respondents who make more than $150,000.
+
+#Race
+The odds of being FS are 1.51 (95% CI 1.38-1.66) times the odds of being non-FS for respondents who are Black. 
+
+The odds of being FS are 1.39 (95% CI 1.11-1.72) times the odds of being non-FS for respondents who are AI/AN. 
+
+The odds of being FS are 1.17 (95% CI 1.00-1.37) times the odds of being non-FS for respondents who are Asian. 
+
+The odds of being FS are 1.09 (95% CI 0.74-1.58) times the odds of being non-FS for respondents who are Hawaiian/Pacific Island.
+
+The odds of being FS are 1.39 (95% CI 0.84-2.19) times the odds of being non-FS for respondents who are Hispanic only.
+
+The odds of being FS are 3.78 (95% CI 2.39-5.81) times the odds of being non-FS for respondents who are 3 or more races.
+
+## Don't have to to test for linearity since non of the variables are continuous.
+
+## Testing the parallel regression/proportional odds assumption using Brant Test for adult food securiyt 
+```{r}
+brant(model2) #Assumption holds 
+```
+
+#Repeat model for kids food security 
+```{r}
+model3 <- polr(KidFood ~ Cit2 + Inc + Race, data=fs2, Hess=TRUE)
+summary(model2)
+
+tidy(model3, conf.int=TRUE, exponentiate = TRUE, p.values=TRUE)
+```
+
+
+## Testing the parallel regression/proportional odds assumption using Brant Test for adult food security
+```{r}
+brant(model3) #Assumption holds 
+```
+
+
